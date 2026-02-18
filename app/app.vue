@@ -393,4 +393,3 @@ footer kbd {
   }
 }
 </style>
-</template>
