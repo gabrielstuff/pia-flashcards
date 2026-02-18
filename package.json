@@ -1,0 +1,15 @@
+{
+  "name": "pia-flashcards",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "deploy": "wrangler pages deploy dist"
+  },
+  "dependencies": {
+    "nuxt": "^4.3.1"
+  }
+}
