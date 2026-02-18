@@ -6,9 +6,7 @@ const showAnswer = ref(false)
 const mode = ref<'sequential' | 'random'>('sequential')
 const masteredCards = ref<Set<number>>(new Set())
 const shuffledOrder = ref<number[]>([])
-const showCelebration = ref(false)
 
-// Initialize shuffled order
 const initShuffle = () => {
   shuffledOrder.value = [...Array(flashcards.length).keys()].sort(() => Math.random() - 0.5)
 }
@@ -28,16 +26,6 @@ const currentCard = computed(() => {
 
 const progress = computed(() => {
   return Math.round((masteredCards.value.size / flashcards.length) * 100)
-})
-
-const level = computed(() => {
-  const p = progress.value
-  if (p >= 100) return { name: 'LÉGENDE', icon: '👑' }
-  if (p >= 80) return { name: 'EXPERT', icon: '⚡' }
-  if (p >= 60) return { name: 'PRO', icon: '🔥' }
-  if (p >= 40) return { name: 'INTERMÉDIAIRE', icon: '💪' }
-  if (p >= 20) return { name: 'APPRENTI', icon: '📚' }
-  return { name: 'DÉBUTANT', icon: '🌱' }
 })
 
 const remainingCards = computed(() => {
@@ -69,21 +57,10 @@ const toggleMastered = () => {
     newSet.delete(cardId)
   } else {
     newSet.add(cardId)
-    // Celebration on milestone
-    if (newSet.size % 10 === 0 || newSet.size === flashcards.length) {
-      triggerCelebration()
-    }
   }
   
   masteredCards.value = newSet
   localStorage.setItem('pia-mastered', JSON.stringify([...newSet]))
-}
-
-const triggerCelebration = () => {
-  showCelebration.value = true
-  setTimeout(() => {
-    showCelebration.value = false
-  }, 2000)
 }
 
 const resetProgress = () => {
@@ -97,116 +74,133 @@ const isMastered = computed(() => masteredCards.value.has(currentCard.value.id))
 </script>
 
 <template>
-  <div class="game-container">
-    <!-- Celebration overlay -->
-    <div v-if="showCelebration" class="celebration">
-      <div class="celebration-text">LEVEL UP! {{ level.icon }}</div>
-    </div>
-
-    <!-- Header -->
-    <header class="header">
-      <div class="logo">
-        <span class="logo-icon">🎮</span>
-        <span class="logo-text">FLASHCARDS</span>
-      </div>
-      <div class="level-badge">
-        <span class="level-icon">{{ level.icon }}</span>
-        <span class="level-name">{{ level.name }}</span>
-      </div>
-    </header>
-
-    <!-- XP Bar -->
-    <div class="xp-section">
-      <div class="xp-label">
-        <span>PROGRESSION</span>
-        <span class="xp-percent">{{ progress }}%</span>
-      </div>
-      <div class="xp-bar">
-        <div class="xp-fill" :style="{ width: progress + '%' }"></div>
-        <div class="xp-glow" :style="{ width: progress + '%' }"></div>
-      </div>
-      <div class="xp-stats">
-        <span>{{ masteredCards.size }}/{{ flashcards.length }} maîtrisées</span>
-        <span class="remaining">{{ remainingCards }} restantes</span>
-      </div>
-    </div>
-
-    <!-- Mode Toggle -->
-    <div class="mode-toggle">
-      <button 
-        :class="['mode-btn', { active: mode === 'sequential' }]"
-        @click="mode = 'sequential'"
-      >
-        📖 Ordre
-      </button>
-      <button 
-        :class="['mode-btn', { active: mode === 'random' }]"
-        @click="mode = 'random'; initShuffle()"
-      >
-        🎲 Aléatoire
-      </button>
-    </div>
-
-    <!-- Card -->
-    <div class="card-container">
-      <div :class="['card', { flipped: showAnswer, mastered: isMastered }]" @click="showAnswer = !showAnswer">
-        <div class="card-inner">
-          <!-- Question side -->
-          <div class="card-front">
-            <div class="card-badge">Q.{{ currentCard.id }}</div>
-            <div class="card-content">
-              <p class="question-text">{{ currentCard.question }}</p>
-            </div>
-            <div class="card-hint">TAP POUR VOIR LA RÉPONSE</div>
+  <div class="container">
+    <!-- Grid overlay -->
+    <div class="grid-overlay"></div>
+    
+    <!-- Corner metadata -->
+    <div class="meta meta-tl">©2026</div>
+    <div class="meta meta-tr">{{ String(currentIndex + 1).padStart(2, '0') }}/{{ flashcards.length }}</div>
+    <div class="meta meta-bl">SYSTÈMES<br>D'INFORMATION</div>
+    <div class="meta meta-br">RÉVISIONS<br>COLLÈGE</div>
+    
+    <!-- Floating decorations -->
+    <div class="deco deco-1">+</div>
+    <div class="deco deco-2">+</div>
+    <div class="deco deco-3">✦</div>
+    
+    <!-- Main content -->
+    <main class="main">
+      <!-- Header -->
+      <header class="header">
+        <div class="title-block">
+          <span class="label">FLASHCARDS</span>
+          <h1 class="title">Pia's<br>Study Cards</h1>
+        </div>
+        
+        <div class="stats-block">
+          <div class="stat">
+            <span class="stat-value">{{ masteredCards.size }}</span>
+            <span class="stat-label">MAÎTRISÉES</span>
           </div>
-          
-          <!-- Answer side -->
-          <div class="card-back">
-            <div class="card-badge answer-badge">RÉPONSE</div>
-            <div class="card-content">
-              <p class="answer-text">{{ currentCard.answer }}</p>
+          <div class="stat">
+            <span class="stat-value">{{ remainingCards }}</span>
+            <span class="stat-label">RESTANTES</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- Progress bar -->
+      <div class="progress-section">
+        <div class="progress-bar">
+          <div class="progress-fill" :style="{ width: progress + '%' }"></div>
+        </div>
+        <span class="progress-text">{{ progress }}% COMPLÉTÉ</span>
+      </div>
+
+      <!-- Mode selector -->
+      <div class="mode-selector">
+        <button 
+          :class="['mode-btn', { active: mode === 'sequential' }]"
+          @click="mode = 'sequential'"
+        >
+          SÉQUENTIEL
+        </button>
+        <button 
+          :class="['mode-btn', { active: mode === 'random' }]"
+          @click="mode = 'random'; initShuffle()"
+        >
+          ALÉATOIRE
+        </button>
+      </div>
+
+      <!-- Card -->
+      <div class="card-wrapper">
+        <div 
+          :class="['card', { flipped: showAnswer, mastered: isMastered }]" 
+          @click="showAnswer = !showAnswer"
+        >
+          <div class="card-inner">
+            <!-- Front -->
+            <div class="card-face card-front">
+              <div class="card-header">
+                <span class="card-type">QUESTION</span>
+                <span class="card-num">N°{{ String(currentCard.id).padStart(2, '0') }}</span>
+              </div>
+              <div class="card-body">
+                <p>{{ currentCard.question }}</p>
+              </div>
+              <div class="card-footer">
+                <span>TAP TO REVEAL →</span>
+              </div>
             </div>
-            <div class="card-hint">TAP POUR REVOIR LA QUESTION</div>
+            
+            <!-- Back -->
+            <div class="card-face card-back">
+              <div class="card-header">
+                <span class="card-type card-type-answer">RÉPONSE</span>
+                <span class="card-num">N°{{ String(currentCard.id).padStart(2, '0') }}</span>
+              </div>
+              <div class="card-body">
+                <p>{{ currentCard.answer }}</p>
+              </div>
+              <div class="card-footer">
+                <span>← TAP TO GO BACK</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- Controls -->
-    <div class="controls">
-      <button class="ctrl-btn prev" @click="prevCard" :disabled="currentIndex === 0">
-        ◀ PRÉC
-      </button>
-      
-      <button 
-        :class="['ctrl-btn master', { active: isMastered }]"
-        @click="toggleMastered"
-      >
-        {{ isMastered ? '✓ MAÎTRISÉE' : '☆ MAÎTRISER' }}
-      </button>
-      
-      <button class="ctrl-btn next" @click="nextCard">
-        SUIV ▶
-      </button>
-    </div>
-
-    <!-- Card counter -->
-    <div class="counter">
-      {{ currentIndex + 1 }} / {{ flashcards.length }}
-    </div>
+      <!-- Controls -->
+      <div class="controls">
+        <button class="ctrl prev" @click="prevCard" :disabled="currentIndex === 0">
+          ← PRÉC
+        </button>
+        
+        <button 
+          :class="['ctrl master', { active: isMastered }]"
+          @click="toggleMastered"
+        >
+          {{ isMastered ? '✓ ACQUIS' : '○ MARQUER' }}
+        </button>
+        
+        <button class="ctrl next" @click="nextCard">
+          SUIV →
+        </button>
+      </div>
+    </main>
 
     <!-- Footer -->
     <footer class="footer">
-      <button class="reset-btn" @click="resetProgress">
-        🔄 Reset
-      </button>
-      <span class="footer-text">Bon courage Pia ! 💪</span>
+      <button class="reset" @click="resetProgress">RESET</button>
+      <span class="credit">MADE WITH ♥ BY MURRAY</span>
     </footer>
   </div>
 </template>
 
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=DM+Sans:wght@400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Space+Mono&display=swap');
 
 * {
   margin: 0;
@@ -215,220 +209,209 @@ const isMastered = computed(() => masteredCards.value.has(currentCard.value.id))
 }
 
 :root {
-  --bg-dark: #0d0d0d;
-  --bg-card: #1a1a2e;
-  --cyan: #00fff5;
-  --magenta: #ff00ff;
-  --yellow: #ffff00;
-  --green: #00ff88;
-  --text: #ffffff;
-  --text-dim: #888;
-  --glow-cyan: 0 0 20px rgba(0, 255, 245, 0.5);
-  --glow-magenta: 0 0 20px rgba(255, 0, 255, 0.5);
-  --glow-green: 0 0 20px rgba(0, 255, 136, 0.5);
+  --bg: #141827;
+  --bg-light: #1e2438;
+  --card-bg: #0d1019;
+  --text: #f5f5f5;
+  --text-dim: #6b7280;
+  --accent: #ff6b35;
+  --accent-glow: rgba(255, 107, 53, 0.3);
+  --success: #10b981;
+  --border: rgba(255, 255, 255, 0.08);
 }
 
 body {
-  font-family: 'DM Sans', sans-serif;
-  background: var(--bg-dark);
+  font-family: 'Outfit', sans-serif;
+  background: var(--bg);
   color: var(--text);
   min-height: 100vh;
   overflow-x: hidden;
 }
 
-.game-container {
-  max-width: 500px;
-  margin: 0 auto;
-  padding: 20px;
+.container {
   min-height: 100vh;
+  padding: 24px;
+  position: relative;
   display: flex;
   flex-direction: column;
-  position: relative;
-  background: 
-    radial-gradient(ellipse at top, rgba(0, 255, 245, 0.05) 0%, transparent 50%),
-    radial-gradient(ellipse at bottom, rgba(255, 0, 255, 0.05) 0%, transparent 50%),
-    var(--bg-dark);
+  max-width: 600px;
+  margin: 0 auto;
 }
 
-/* Celebration */
-.celebration {
+/* Grid overlay */
+.grid-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.9);
+  background-image: 
+    linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+  background-size: 60px 60px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Corner metadata */
+.meta {
+  position: fixed;
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  color: var(--text-dim);
+  z-index: 1;
+}
+
+.meta-tl { top: 20px; left: 20px; }
+.meta-tr { top: 20px; right: 20px; text-align: right; }
+.meta-bl { bottom: 20px; left: 20px; line-height: 1.4; }
+.meta-br { bottom: 20px; right: 20px; text-align: right; line-height: 1.4; }
+
+/* Decorations */
+.deco {
+  position: fixed;
+  color: var(--text-dim);
+  font-size: 14px;
+  z-index: 1;
+}
+
+.deco-1 { top: 30%; left: 15px; }
+.deco-2 { top: 60%; right: 15px; }
+.deco-3 { top: 45%; right: 20px; color: var(--accent); }
+
+/* Main */
+.main {
+  flex: 1;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 100;
-  animation: celebrationFade 2s ease-out forwards;
-}
-
-.celebration-text {
-  font-family: 'Press Start 2P', monospace;
-  font-size: 24px;
-  color: var(--yellow);
-  text-shadow: var(--glow-cyan), 0 0 40px var(--cyan);
-  animation: celebrationPulse 0.5s ease-in-out infinite alternate;
-}
-
-@keyframes celebrationFade {
-  0%, 70% { opacity: 1; }
-  100% { opacity: 0; pointer-events: none; }
-}
-
-@keyframes celebrationPulse {
-  from { transform: scale(1); }
-  to { transform: scale(1.1); }
+  flex-direction: column;
+  position: relative;
+  z-index: 2;
+  padding-top: 40px;
 }
 
 /* Header */
 .header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
+  align-items: flex-start;
+  margin-bottom: 32px;
 }
 
-.logo {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+.title-block {
+  flex: 1;
 }
 
-.logo-icon {
-  font-size: 24px;
-}
-
-.logo-text {
-  font-family: 'Press Start 2P', monospace;
-  font-size: 14px;
-  color: var(--cyan);
-  text-shadow: var(--glow-cyan);
-}
-
-.level-badge {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  background: linear-gradient(135deg, rgba(255, 0, 255, 0.2), rgba(0, 255, 245, 0.2));
-  border: 1px solid var(--magenta);
-  border-radius: 20px;
-}
-
-.level-icon {
-  font-size: 16px;
-}
-
-.level-name {
-  font-family: 'Press Start 2P', monospace;
-  font-size: 8px;
-  color: var(--magenta);
-}
-
-/* XP Section */
-.xp-section {
-  margin-bottom: 20px;
-}
-
-.xp-label {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 8px;
-  font-size: 12px;
-  color: var(--text-dim);
-}
-
-.xp-percent {
-  font-family: 'Press Start 2P', monospace;
+.label {
+  font-family: 'Space Mono', monospace;
   font-size: 10px;
-  color: var(--cyan);
+  letter-spacing: 2px;
+  color: var(--accent);
+  display: block;
+  margin-bottom: 8px;
 }
 
-.xp-bar {
-  height: 12px;
-  background: var(--bg-card);
-  border-radius: 6px;
-  overflow: hidden;
-  position: relative;
-  border: 1px solid rgba(0, 255, 245, 0.3);
+.title {
+  font-size: 32px;
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -1px;
 }
 
-.xp-fill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--cyan), var(--magenta));
-  transition: width 0.5s ease-out;
-  position: relative;
-}
-
-.xp-glow {
-  position: absolute;
-  top: 0;
-  left: 0;
-  height: 100%;
-  background: linear-gradient(90deg, var(--cyan), var(--magenta));
-  filter: blur(8px);
-  opacity: 0.5;
-  transition: width 0.5s ease-out;
-}
-
-.xp-stats {
+.stats-block {
   display: flex;
-  justify-content: space-between;
-  margin-top: 8px;
-  font-size: 11px;
+  gap: 24px;
+}
+
+.stat {
+  text-align: right;
+}
+
+.stat-value {
+  font-size: 28px;
+  font-weight: 600;
+  display: block;
+  color: var(--accent);
+}
+
+.stat-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 1px;
   color: var(--text-dim);
 }
 
-.remaining {
-  color: var(--magenta);
+/* Progress */
+.progress-section {
+  margin-bottom: 24px;
 }
 
-/* Mode Toggle */
-.mode-toggle {
+.progress-bar {
+  height: 3px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), #ff8f35);
+  transition: width 0.4s ease;
+}
+
+.progress-text {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  color: var(--text-dim);
+}
+
+/* Mode selector */
+.mode-selector {
   display: flex;
-  gap: 10px;
-  margin-bottom: 24px;
+  gap: 12px;
+  margin-bottom: 32px;
 }
 
 .mode-btn {
   flex: 1;
   padding: 12px;
   background: transparent;
-  border: 1px solid var(--text-dim);
-  border-radius: 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
   color: var(--text-dim);
-  font-family: 'DM Sans', sans-serif;
-  font-size: 14px;
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 1px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
+}
+
+.mode-btn:hover {
+  border-color: var(--text-dim);
 }
 
 .mode-btn.active {
-  border-color: var(--cyan);
-  color: var(--cyan);
-  background: rgba(0, 255, 245, 0.1);
-  box-shadow: var(--glow-cyan);
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(255, 107, 53, 0.05);
 }
 
 /* Card */
-.card-container {
+.card-wrapper {
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  perspective: 1000px;
-  margin-bottom: 24px;
+  perspective: 1200px;
+  margin-bottom: 32px;
+  min-height: 280px;
 }
 
 .card {
   width: 100%;
-  max-width: 400px;
   height: 280px;
   cursor: pointer;
-  position: relative;
 }
 
 .card-inner {
@@ -436,145 +419,126 @@ body {
   height: 100%;
   position: relative;
   transform-style: preserve-3d;
-  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .card.flipped .card-inner {
   transform: rotateY(180deg);
 }
 
-.card-front,
-.card-back {
+.card-face {
   position: absolute;
   width: 100%;
   height: 100%;
   backface-visibility: hidden;
-  border-radius: 16px;
+  border-radius: 12px;
   padding: 24px;
   display: flex;
   flex-direction: column;
-  background: var(--bg-card);
-  border: 2px solid transparent;
-  background-clip: padding-box;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
 }
 
 .card-front {
-  border-color: var(--cyan);
-  box-shadow: 0 0 30px rgba(0, 255, 245, 0.2), inset 0 0 30px rgba(0, 255, 245, 0.05);
+  border-left: 3px solid var(--text-dim);
 }
 
 .card-back {
   transform: rotateY(180deg);
-  border-color: var(--magenta);
-  box-shadow: 0 0 30px rgba(255, 0, 255, 0.2), inset 0 0 30px rgba(255, 0, 255, 0.05);
+  border-left: 3px solid var(--accent);
 }
 
 .card.mastered .card-front,
 .card.mastered .card-back {
-  border-color: var(--green);
-  box-shadow: 0 0 30px rgba(0, 255, 136, 0.3), inset 0 0 30px rgba(0, 255, 136, 0.05);
+  border-left-color: var(--success);
 }
 
-.card-badge {
-  font-family: 'Press Start 2P', monospace;
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.card-type {
+  font-family: 'Space Mono', monospace;
   font-size: 10px;
-  color: var(--cyan);
-  margin-bottom: 16px;
+  letter-spacing: 2px;
+  color: var(--text-dim);
 }
 
-.answer-badge {
-  color: var(--magenta);
+.card-type-answer {
+  color: var(--accent);
 }
 
-.card-content {
+.card-num {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  color: var(--text-dim);
+}
+
+.card-body {
   flex: 1;
   display: flex;
   align-items: center;
-  justify-content: center;
-  text-align: center;
 }
 
-.question-text,
-.answer-text {
-  font-size: 16px;
+.card-body p {
+  font-size: 17px;
   line-height: 1.6;
-  font-weight: 500;
+  font-weight: 400;
 }
 
-.card-hint {
-  font-family: 'Press Start 2P', monospace;
-  font-size: 8px;
+.card-footer {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
   color: var(--text-dim);
   text-align: center;
-  animation: blink 2s ease-in-out infinite;
-}
-
-@keyframes blink {
-  0%, 100% { opacity: 0.5; }
-  50% { opacity: 1; }
+  opacity: 0.6;
 }
 
 /* Controls */
 .controls {
   display: flex;
   gap: 12px;
-  margin-bottom: 16px;
 }
 
-.ctrl-btn {
+.ctrl {
   flex: 1;
-  padding: 14px 8px;
-  border: none;
-  border-radius: 8px;
-  font-family: 'Press Start 2P', monospace;
-  font-size: 9px;
+  padding: 14px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 1px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
-.ctrl-btn.prev,
-.ctrl-btn.next {
-  background: var(--bg-card);
-  color: var(--text);
-  border: 1px solid var(--text-dim);
+.ctrl:hover:not(:disabled) {
+  border-color: var(--text-dim);
 }
 
-.ctrl-btn.prev:hover:not(:disabled),
-.ctrl-btn.next:hover:not(:disabled) {
-  border-color: var(--cyan);
-  color: var(--cyan);
-}
-
-.ctrl-btn:disabled {
+.ctrl:disabled {
   opacity: 0.3;
   cursor: not-allowed;
 }
 
-.ctrl-btn.master {
-  background: transparent;
-  color: var(--yellow);
-  border: 2px solid var(--yellow);
+.ctrl.master {
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
-.ctrl-btn.master:hover {
-  background: rgba(255, 255, 0, 0.1);
-  box-shadow: 0 0 20px rgba(255, 255, 0, 0.3);
+.ctrl.master:hover {
+  background: rgba(255, 107, 53, 0.1);
 }
 
-.ctrl-btn.master.active {
-  background: var(--green);
-  border-color: var(--green);
-  color: var(--bg-dark);
-  box-shadow: var(--glow-green);
-}
-
-/* Counter */
-.counter {
-  text-align: center;
-  font-family: 'Press Start 2P', monospace;
-  font-size: 12px;
-  color: var(--text-dim);
-  margin-bottom: 24px;
+.ctrl.master.active {
+  background: var(--success);
+  border-color: var(--success);
+  color: var(--bg);
 }
 
 /* Footer */
@@ -582,57 +546,58 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-top: 16px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 24px;
+  margin-top: auto;
+  position: relative;
+  z-index: 2;
 }
 
-.reset-btn {
+.reset {
   background: transparent;
-  border: 1px solid var(--text-dim);
+  border: none;
   color: var(--text-dim);
-  padding: 8px 16px;
-  border-radius: 6px;
-  font-size: 12px;
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 1px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  padding: 8px 0;
 }
 
-.reset-btn:hover {
-  border-color: #ff4444;
-  color: #ff4444;
+.reset:hover {
+  color: #ef4444;
 }
 
-.footer-text {
-  font-size: 14px;
+.credit {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 1px;
   color: var(--text-dim);
 }
 
-/* Mobile optimizations */
-@media (max-width: 400px) {
-  .game-container {
-    padding: 16px;
+/* Responsive */
+@media (max-width: 500px) {
+  .meta {
+    display: none;
   }
   
-  .logo-text {
-    font-size: 11px;
+  .deco {
+    display: none;
   }
   
-  .level-name {
-    font-size: 7px;
+  .title {
+    font-size: 26px;
+  }
+  
+  .stat-value {
+    font-size: 24px;
   }
   
   .card {
     height: 260px;
   }
   
-  .question-text,
-  .answer-text {
-    font-size: 14px;
-  }
-  
-  .ctrl-btn {
-    font-size: 8px;
-    padding: 12px 6px;
+  .card-body p {
+    font-size: 15px;
   }
 }
 </style>
